@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Heart, ShoppingCart, User, Menu, X } from 'lucide-react';
 import { useSelector } from 'react-redux';
 
@@ -7,8 +7,8 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const cartItems = useSelector(store => store.cart.items);
+  const navigate = useNavigate();
 
-  // Check authentication status on component mount and when localStorage changes
   useEffect(() => {
     const checkAuthStatus = () => {
       const token = localStorage.getItem("token");
@@ -18,14 +18,11 @@ const Navbar = () => {
 
     checkAuthStatus();
 
-    // Listen for login/logout events
     const handleUserLogin = () => checkAuthStatus();
     const handleUserLogout = () => checkAuthStatus();
 
     window.addEventListener('userLogin', handleUserLogin);
     window.addEventListener('userLogout', handleUserLogout);
-
-    // Listen for storage changes (in case user logs out from another tab)
     window.addEventListener('storage', checkAuthStatus);
 
     return () => {
@@ -39,13 +36,19 @@ const Navbar = () => {
     return isAuthenticated ? "/profile" : "/user";
   };
 
+  const handleCartClick = () => {
+    if (isAuthenticated) {
+      navigate("/cart");
+    } else {
+      navigate("/user");
+    }
+  };
+
   return (
     <header className="bg-white shadow-md w-full">
-      {/* Main Navbar */}
       <div className="h-24 px-4 lg:px-20 mx-auto max-w-7xl flex items-center">
         {/* Mobile Layout */}
         <div className="w-full flex justify-between items-center lg:hidden">
-          {/* Menu Button */}
           <button 
             className="flex items-center p-2"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -58,26 +61,24 @@ const Navbar = () => {
             )}
           </button>
 
-          {/* Centered Logo */}
           <Link to="/" className="absolute left-1/2 transform -translate-x-1/2">
             <img src="/logopng1.png" alt="Logo" className="h-20 w-auto" />
           </Link>
 
-          {/* Right Icons */}
           <div className="flex items-center gap-5">
             <button className="flex hover:text-gray-600 transition-colors">
               <Heart size={26} />
             </button>
-            
-            <Link to="/cart" className="relative">
-              <ShoppingCart size={26} className="text-black hover:text-gray-600 transition-colors" />
+
+            <button onClick={handleCartClick} className="relative text-black hover:text-gray-600 transition-colors">
+              <ShoppingCart size={26} />
               {cartItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
                   {cartItems.length}
                 </span>
               )}
-            </Link>
-            
+            </button>
+
             <Link to={getUserIconLink()} className="flex hover:text-gray-600 transition-colors">
               <User size={26} />
             </Link>
@@ -91,35 +92,26 @@ const Navbar = () => {
           </Link>
 
           <nav className="flex items-center gap-8 ml-8">
-            <Link to="/" className="text-black font-medium hover:text-gray-600 transition-colors">
-              Home
-            </Link>
-            <Link to="/store" className="text-black font-medium hover:text-gray-600 transition-colors">
-              Store
-            </Link>
-            <Link to="/grooming" className="text-black font-medium hover:text-gray-600 transition-colors">
-              Grooming
-            </Link>
-            <Link to="/contact" className="text-black font-medium hover:text-gray-600 transition-colors">
-              Contact
-            </Link>
+            <Link to="/" className="text-black font-medium hover:text-gray-600 transition-colors">Home</Link>
+            <Link to="/store" className="text-black font-medium hover:text-gray-600 transition-colors">Store</Link>
+            <Link to="/grooming" className="text-black font-medium hover:text-gray-600 transition-colors">Grooming</Link>
+            <Link to="/contact" className="text-black font-medium hover:text-gray-600 transition-colors">Contact</Link>
           </nav>
 
           <div className="flex items-center gap-6">
             <button className="flex hover:text-gray-600 transition-colors">
               <Heart size={26} />
             </button>
-            
-            <Link to="/cart" className="relative">
-              <ShoppingCart size={26} className="text-black hover:text-gray-600 transition-colors" />
+
+            <button onClick={handleCartClick} className="relative text-black hover:text-gray-600 transition-colors">
+              <ShoppingCart size={26} />
               {cartItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
                   {cartItems.length}
                 </span>
               )}
-            </Link>
-            
-            {/* Dynamic User Icon based on authentication */}
+            </button>
+
             <Link to={getUserIconLink()} className="flex hover:text-gray-600 transition-colors">
               <User size={26} />
             </Link>
@@ -134,36 +126,17 @@ const Navbar = () => {
         }`}
       >
         <nav className="flex flex-col py-4">
-          <Link 
-            to="/" 
-            className="px-6 py-4 text-lg font-medium hover:bg-gray-50 transition-colors"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Home
-          </Link>
-          <Link 
-            to="/store" 
-            className="px-6 py-4 text-lg font-medium hover:bg-gray-50 transition-colors"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Store
-          </Link>
-          <Link 
-            to="/grooming" 
-            className="px-6 py-4 text-lg font-medium hover:bg-gray-50 transition-colors"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Grooming
-          </Link>
-          <Link 
-            to="/contact" 
-            className="px-6 py-4 text-lg font-medium hover:bg-gray-50 transition-colors"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Contact
-          </Link>
-          
-          {/* Authentication options in mobile menu */}
+          {["/", "/store", "/grooming", "/contact"].map((path, idx) => (
+            <Link 
+              key={path}
+              to={path}
+              className="px-6 py-4 text-lg font-medium hover:bg-gray-50 transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {["Home", "Store", "Grooming", "Contact"][idx]}
+            </Link>
+          ))}
+
           <div className="border-t border-gray-200 mt-4 pt-4">
             {isAuthenticated ? (
               <Link 

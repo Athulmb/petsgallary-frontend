@@ -1,8 +1,9 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Heart, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { api } from '../utils/api';
 
-const ProductCard = ({ price, discount, description }) => (
+const ProductCard = ({ price, discount, description, image }) => (
   <div className="w-[262px] h-[460px] rounded-[20px] shadow-sm snap-start flex flex-col bg-white">
     <div className="relative flex-1">
       <button className="absolute left-2 top-2 z-10">
@@ -13,7 +14,7 @@ const ProductCard = ({ price, discount, description }) => (
       </span>
       <div className="rounded-lg p-6 flex justify-center items-center">
         <img
-          src="envato-labs-image-edit (8) 1.png"
+          src={image || "default.png"}
           alt="Product"
           className="w-[100px] h-[150px] object-contain"
         />
@@ -33,11 +34,11 @@ const ProductCard = ({ price, discount, description }) => (
       </div>
       <p className="text-gray-700 text-[18px] mb-2">{description}</p>
       <p className="text-xl font-bold text-[24px] mb-4">{price} AED</p>
-      <Link to="/productDetails" >
-  <button className="w-[222px] h-[38px] bg-orange-400 hover:bg-orange-500 text-white rounded-full transition-colors mb-[20px] self-center">
-    Add to Cart
-  </button>
-</Link>
+      <Link to="/productDetails">
+        <button className="w-[222px] h-[38px] bg-orange-400 hover:bg-orange-500 text-white rounded-full transition-colors mb-[20px] self-center">
+          Add to Cart
+        </button>
+      </Link>
     </div>
   </div>
 );
@@ -45,7 +46,10 @@ const ProductCard = ({ price, discount, description }) => (
 const ProductCarousel = () => {
   const scrollRef = useRef(null);
   const [scrollAmount, setScrollAmount] = useState(300);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
+  // Scroll responsiveness
   useEffect(() => {
     const updateScrollAmount = () => {
       if (window.innerWidth < 640) {
@@ -56,7 +60,6 @@ const ProductCarousel = () => {
         setScrollAmount(300);
       }
     };
-
     updateScrollAmount();
     window.addEventListener("resize", updateScrollAmount);
     return () => window.removeEventListener("resize", updateScrollAmount);
@@ -70,16 +73,27 @@ const ProductCarousel = () => {
     scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
   };
 
-  const products = [
-    { id: 1, price: 550, discount: "30%", description: "Lorem ipsum dolor sit amet consectetur." },
-    { id: 2, price: 550, discount: "30%", description: "Lorem ipsum dolor sit amet consectetur." },
-    { id: 3, price: 550, discount: "30%", description: "Lorem ipsum dolor sit amet consectetur." },
-    { id: 4, price: 550, discount: "30%", description: "Lorem ipsum dolor sit amet consectetur." },
-    { id: 5, price: 550, discount: "30%", description: "Lorem ipsum dolor sit amet consectetur." },
-    { id: 6, price: 550, discount: "30%", description: "Lorem ipsum dolor sit amet consectetur." },
-    { id: 7, price: 550, discount: "30%", description: "Lorem ipsum dolor sit amet consectetur." },
-    { id: 8, price: 550, discount: "30%", description: "Lorem ipsum dolor sit amet consectetur." },
-  ];
+  // Fetch products
+  const fetchInitialData = async (page = 1) => {
+    try {
+      setLoading(true);
+      const res = await api.get("/get-all-active-products", {
+        params: { page },
+      });
+
+      const paginated = res.data.products || { data: [] };
+      setProducts(paginated.data || []);
+    } catch (error) {
+      console.error("Initial load error:", error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
 
   return (
     <div className="relative px-4 sm:px-10 lg:px-20 py-10">
@@ -87,7 +101,7 @@ const ProductCarousel = () => {
         Our Best Seller
       </h1>
 
-      {/* Scroll Navigation Buttons */}
+      {/* Scroll Buttons */}
       <div className="absolute top-6 right-4 flex gap-2 z-10">
         <button
           onClick={scrollLeft}
@@ -103,16 +117,28 @@ const ProductCarousel = () => {
         </button>
       </div>
 
-      {/* Scrollable Container */}
+      {/* Product Scroll Area */}
       <div
         ref={scrollRef}
         className="w-full overflow-x-auto scroll-smooth scrollbar-hide snap-x snap-mandatory"
         style={{ scrollbarWidth: "none" }}
       >
         <div className="inline-flex space-x-4 sm:space-x-6 w-max">
-          {products.map((product) => (
-            <ProductCard key={product.id} {...product} />
-          ))}
+          {loading ? (
+            <p className="text-center text-gray-500">Loading...</p>
+          ) : products.length === 0 ? (
+            <p className="text-center text-gray-500">No products found.</p>
+          ) : (
+            products.map((product) => (
+              <ProductCard
+                key={product.id}
+                price={product.price}
+                discount={product.discount || "30%"}
+                description={product.name || "No description"}
+                image={product.image_url}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>
