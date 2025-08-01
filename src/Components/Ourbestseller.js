@@ -1,55 +1,56 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Heart, Star, ChevronLeft, ChevronRight } from "lucide-react";
-import { Link } from "react-router-dom";
-import { api } from '../utils/api';
+import { useNavigate } from "react-router-dom";
+import { api } from "../utils/api";
 
-const ProductCard = ({ price, discount, description, image }) => (
-  <div className="w-[262px] h-[460px] rounded-[20px] shadow-sm snap-start flex flex-col bg-white">
-    <div className="relative flex-1">
-      <button className="absolute left-2 top-2 z-10">
-        <Heart className="w-6 h-6 text-gray-400" />
-      </button>
-      <span className="absolute right-2 top-2 bg-orange-500 text-white text-sm px-2 py-1 rounded-md z-10">
-        {discount}
-      </span>
-      <div className="rounded-lg p-6 flex justify-center items-center">
+const ProductCard = ({ product, onClick }) => {
+  return (
+    <div
+      className="bg-white w-[262px] h-[460px] rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer snap-start flex-shrink-0"
+      onClick={onClick}
+    >
+      <div className="relative mb-4 flex justify-center items-center min-h-[200px]">
+        <button className="absolute right-0 top-0 z-10">
+          <Heart className="w-6 h-6 text-gray-400" />
+        </button>
+        <span className="absolute left-0 top-0 bg-orange-500 text-white text-sm px-3 py-1 rounded-full">
+          {product.discount || "30%"}
+        </span>
         <img
-          src={image || "default.png"}
-          alt="Product"
-          className="w-[100px] h-[150px] object-contain"
+          src={product.images?.[0]?.image_url || product.image_url || "/images/placeholder.png"}
+          alt={product.name}
+          className="w-full h-48 object-cover rounded-lg"
         />
       </div>
-    </div>
 
-    <div className="mt-4 px-5 flex flex-col justify-between flex-1">
-      <div className="flex mb-2">
+      <div className="flex gap-1 mb-2">
         {[1, 2, 3, 4, 5].map((_, index) => (
           <Star
             key={index}
-            className={`w-4 h-4 ${
-              index < 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-            }`}
+            className={`w-4 h-4 ${index < 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
           />
         ))}
       </div>
-      <p className="text-gray-700 text-[18px] mb-2">{description}</p>
-      <p className="text-xl font-bold text-[24px] mb-4">{price} AED</p>
-      <Link to="/productDetails">
-        <button className="w-[222px] h-[38px] bg-orange-400 hover:bg-orange-500 text-white rounded-full transition-colors mb-[20px] self-center">
-          Add to Cart
-        </button>
-      </Link>
+
+      <p className="text-gray-700 text-md mb-2 min-h-[40px] line-clamp-2">
+        {product.name || "No description"}
+      </p>
+      <p className="text-xl font-bold mb-4">{product.price} AED</p>
+
+      <button className="w-full bg-orange-400 hover:bg-orange-500 text-white py-3 rounded-full text-sm font-medium transition-colors">
+        Add To Cart
+      </button>
     </div>
-  </div>
-);
+  );
+};
 
 const ProductCarousel = () => {
   const scrollRef = useRef(null);
+  const navigate = useNavigate();
   const [scrollAmount, setScrollAmount] = useState(300);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Scroll responsiveness
   useEffect(() => {
     const updateScrollAmount = () => {
       if (window.innerWidth < 640) {
@@ -73,14 +74,13 @@ const ProductCarousel = () => {
     scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
   };
 
-  // Fetch products
   const fetchInitialData = async (page = 1) => {
     try {
       setLoading(true);
-      const res = await api.get("/get-all-active-products", {
+      const res = await api.get("/get-bestseller-products", {
         params: { page },
       });
-
+      console.log("API Response:", res);
       const paginated = res.data.products || { data: [] };
       setProducts(paginated.data || []);
     } catch (error) {
@@ -132,10 +132,8 @@ const ProductCarousel = () => {
             products.map((product) => (
               <ProductCard
                 key={product.id}
-                price={product.price}
-                discount={product.discount || "30%"}
-                description={product.name || "No description"}
-                image={product.image_url}
+                product={product}
+                onClick={() => navigate(`/product/${product.id}`)}
               />
             ))
           )}

@@ -3,9 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { FaHeart } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 import { addItem } from "../utils/cartSlice";
-// import axios from "axios";
-import { api } from '../utils/api'; 
-
+import { api } from "../utils/api";
 
 const ProductImageGallery = ({ product }) => {
   const [selectedImage, setSelectedImage] = useState(product.images?.[0]?.image_url);
@@ -56,11 +54,10 @@ const ProductDetails = () => {
   const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
-   
-    api.get(`/get-product-details/${id}`)   
-    // axios.get(`http://127.0.0.1:8000/api/get-product-details/${id}`)
+    console.log("Fetching product with ID:", id);
+    api.get(`/get-product-details/${id}`)
       .then((res) => {
-        console.log("Product details:", res.data.product);
+        console.log("Product fetched successfully:", res.data.product);
         setProduct(res.data.product);
         setLoading(false);
       })
@@ -69,23 +66,157 @@ const ProductDetails = () => {
         setLoading(false);
       });
   }, [id]);
-  
 
-  const addProduct = () => {
-    dispatch(
-      addItem({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.images?.[0]?.image_url || null, // ✅ safe access
-        description: product.description,
-        about_product: product.about_product,
-        benefits: product.benefits,
-        size: selectedPackage,
-      })
-    );
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000); 
+  // Function to check if product already exists in cart
+  const checkExistingCartItem = async (productId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      
+      if (!token || !userId) {
+        return null;
+      }
+
+      const response = await api.get("/cart/get", {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      // Find existing cart item for this product and user
+      const existingItem = response.data.items.find(item => 
+        String(item.user_id) === String(userId) && 
+        String(item.product_id) === String(productId)
+      );
+
+      return existingItem || null;
+    } catch (error) {
+      console.error("Error checking existing cart item:", error);
+      return null;
+    }
+  };
+
+  const addProduct = async () => {
+    // Validation before sending request
+    if (!product?.id) {
+      console.error("Product ID is missing");
+      return;
+    }
+  
+    if (quantity < 1) {
+      console.error("Quantity must be at least 1");
+      return;
+    }
+  
+    try {
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error("No authentication token found");
+        return;
+      }
+
+      // Check if product already exists in cart
+      const existingCartItem = await checkExistingCartItem(product.id);
+      
+      if (existingCartItem) {
+        // Product exists, update quantity instead of adding new item
+        const newQuantity = existingCartItem.quantity + quantity;
+        
+        console.log(`Product already exists in cart. Updating quantity from ${existingCartItem.quantity} to ${newQuantity}`);
+        
+        const updateResponse = await api.put(`/cart/update/${existingCartItem.id}`, {
+          product_id: parseInt(product.id),
+          quantity: newQuantity
+        }, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        });
+
+        console.log("Cart item updated successfully:", updateResponse.data);
+
+        // Update Redux store with new quantity
+        dispatch(
+          addItem({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.images?.[0]?.image_url || null,
+            description: product.description,
+            about_product: product.about_product,
+            benefits: product.benefits,
+            size: selectedPackage,
+            quantity: quantity, // This will be added to existing quantity in Redux
+          })
+        );
+
+      } else {
+        // Product doesn't exist, add new item
+        const payload = {
+          product_id: parseInt(product.id),
+          quantity: parseInt(quantity),
+        };
+
+        console.log("Adding new product to cart. Payload:", payload);
+
+        const response = await api.post("/cart/add", payload, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        });
+
+        console.log("Product added to cart successfully:", response.data);
+
+        // Add to Redux store
+        dispatch(
+          addItem({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.images?.[0]?.image_url || null,
+            description: product.description,
+            about_product: product.about_product,
+            benefits: product.benefits,
+            size: selectedPackage,
+            quantity: quantity,
+          })
+        );
+      }
+
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+      
+    } catch (error) {
+      console.error("Failed to sync cart:", error);
+      
+      // Log the full error response for debugging
+      if (error.response) {
+        console.error("Error status:", error.response.status);
+        console.error("Error data:", error.response.data);
+        console.error("Error headers:", error.response.headers);
+        
+        // Handle specific error cases
+        if (error.response.status === 422) {
+          console.error("Validation errors:", error.response.data);
+          if (error.response.data.message) {
+            alert(`Validation Error: ${error.response.data.message}`);
+          }
+          if (error.response.data.errors) {
+            console.error("Detailed validation errors:", error.response.data.errors);
+          }
+        } else if (error.response.status === 401) {
+          console.error("Authentication failed - token may be expired");
+          localStorage.removeItem('token');
+          localStorage.removeItem('userId');
+        }
+      } else {
+        console.error("Network or other error:", error.message);
+      }
+    }
   };
 
   if (loading) return <p className="p-8">Loading...</p>;
@@ -111,25 +242,22 @@ const ProductDetails = () => {
           <div className="text-2xl font-semibold text-[#FF9B57] mb-4">
             {product.price} <span className="text-sm text-gray-500">AED</span>
           </div>
+
           {product.product_attributes && product.product_attributes.length > 0 && (
-          <div className="mb-4">
-            
-            <div className="space-y-2">
-            {product.product_attributes.map((attr) => (
-              <div
-                key={attr.id}
-                className="flex items-center gap-4 border rounded-md px-4 py-2 text-sm text-gray-700 bg-white shadow-sm"
-              >
-                <span className="font-semibold text-gray-800">{attr.name}:</span>
-                <span>{attr.pivot?.value || "-"}</span>
+            <div className="mb-4">
+              <div className="space-y-2">
+                {product.product_attributes.map((attr) => (
+                  <div
+                    key={attr.id}
+                    className="flex items-center gap-4 border rounded-md px-4 py-2 text-sm text-gray-700 bg-white shadow-sm"
+                  >
+                    <span className="font-semibold text-gray-800">{attr.name}:</span>
+                    <span>{attr.pivot?.value || "-"}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-
-          </div>
-        )}
-
+            </div>
+          )}
 
           <div className="flex md:flex-row flex-col gap-4 items-start">
             <div className="w-full md:w-1/6">
@@ -198,37 +326,33 @@ const ProductDetails = () => {
               <FaHeart />
             </button>
           </div>
-          {addedToCart && (
-  <p className="text-green-600 text-sm font-medium">Added to cart!</p>
-)}
 
+          {addedToCart && (
+            <p className="text-green-600 text-sm font-medium">Added to cart!</p>
+          )}
         </div>
       </div>
 
       <div className="py-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Product Details</h2>
-          <hr className="mb-8 border-gray-300" />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {/* About Product */}
-            <div className="bg-white p-6 rounded-xl shadow-md border">
-              <h3 className="text-xl font-semibold text-[#1F2937] mb-3">About Product</h3>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                {product.about_product}
-              </p>
-            </div>
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">Product Details</h2>
+        <hr className="mb-8 border-gray-300" />
 
-            {/* Key Features / Benefits */}
-            <div className="bg-white p-6 rounded-xl shadow-md border">
-              <h3 className="text-xl font-semibold text-[#1F2937] mb-3">Key Features / Benefits</h3>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-          {product.benefits.replace(/^Key Features\/Benefits:\s*/i, '')}
-        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="bg-white p-6 rounded-xl shadow-md border">
+            <h3 className="text-xl font-semibold text-[#1F2937] mb-3">About Product</h3>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+              {product.about_product}
+            </p>
+          </div>
 
-            </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border">
+            <h3 className="text-xl font-semibold text-[#1F2937] mb-3">Key Features / Benefits</h3>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+              {product.benefits.replace(/^Key Features\/Benefits:\s*/i, "")}
+            </p>
           </div>
         </div>
-
+      </div>
     </div>
   );
 };

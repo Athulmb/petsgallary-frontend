@@ -1,6 +1,7 @@
 import React from 'react'
 import { ArrowRight } from "lucide-react";
 import { ArrowUpRight } from "lucide-react";
+import { Link } from 'react-router-dom';
 
 export default function GroomingServices() {
   return (
@@ -53,7 +54,8 @@ export default function GroomingServices() {
             <p className="text-sm text-gray-500 mt-1">From Our Specialist</p>
             <div className="flex justify-end mt-4">
               <div className="bg-orange-200 p-2 rounded-full">
-                <ArrowUpRight className="w-5 h-5" />
+                <Link to="/grooming">
+                <ArrowUpRight className="w-5 h-5" /></Link>
               </div>
             </div>
           </div>

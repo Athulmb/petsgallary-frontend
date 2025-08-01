@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 
 // Service Data
 const services = [
@@ -93,6 +93,12 @@ const items = [
 
 const GroomingPage = () => {
   const [activeTab, setActiveTab] = useState('whyGrooming');
+  const navigate = useNavigate();
+
+  const handleBookNow = () => {
+    navigate('/contact');
+  };
+
   return (
     <div>
       {/* Hero Section */}
@@ -108,7 +114,10 @@ const GroomingPage = () => {
             Professional grooming from experienced <br />
             masters
           </p>
-          <button className="mt-8 bg-orange-400 text-white text-lg font-semibold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-md hover:bg-orange-500 transition">
+          <button 
+            onClick={handleBookNow}
+            className="mt-8 bg-orange-400 text-white text-lg font-semibold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-md hover:bg-orange-500 transition"
+          >
             Book Now
           </button>
         </div>
@@ -594,7 +603,10 @@ const GroomingPage = () => {
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             Give your furry friend the care they deserve with our professional grooming services in Dubai
           </p>
-          <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 mb-5 rounded-full font-medium transition-colors duration-200">
+          <button 
+            onClick={handleBookNow}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 mb-5 rounded-full font-medium transition-colors duration-200"
+          >
             Book Appointment Now
           </button>
         </div>
@@ -647,7 +659,10 @@ const GroomingPage = () => {
       We provide expert grooming services with a touch of love and care. Give your pet the pampering they deserve.
         <br className="hidden md:block"/>  Click below to book a session today!.
       </p>
-      <button className="bg-[#FF9966] text-white px-6 sm:px-8 py-2 rounded-full hover:bg-[#FF8851] transition-colors">
+      <button 
+        onClick={handleBookNow}
+        className="bg-[#FF9966] text-white px-6 sm:px-8 py-2 rounded-full hover:bg-[#FF8851] transition-colors"
+      >
         Book Now
       </button>
     </div>
@@ -663,10 +678,6 @@ const GroomingPage = () => {
 
   </div>
 </section>
-
-
-
-
 
      {/* Footer Positioned Below */}
      {/* <footer className="w-full p-4 md:p-8 mt-10"> 

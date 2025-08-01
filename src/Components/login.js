@@ -32,7 +32,6 @@ export default function LoginForm() {
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       showToast("Please enter a valid email address.");
@@ -48,9 +47,9 @@ export default function LoginForm() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ 
-          email: email.trim().toLowerCase(), // Normalize email
-          password: password 
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password: password
         }),
       });
 
@@ -74,35 +73,33 @@ export default function LoginForm() {
 
       showToast("Login successful!", "success");
 
-      // Clear any existing user data first
+      // Clear previous data
       localStorage.removeItem("token");
       localStorage.removeItem("userId");
       localStorage.removeItem("userEmail");
       localStorage.removeItem("userData");
       localStorage.removeItem("isAuthenticated");
 
-      // Store new authentication data
+      // Store new data
+      const userId = data.user?.id || data.userId;
       localStorage.setItem("token", data.token);
-      localStorage.setItem("userId", data.user?.id || data.userId);
+      localStorage.setItem("userId", userId);
       localStorage.setItem("userEmail", data.user?.email || data.userEmail || email);
       localStorage.setItem("isAuthenticated", "true");
-      
-      // Store complete user data for easy access
+
       const userData = {
-        id: data.user?.id || data.userId,
+        id: userId,
         name: data.user?.name || data.userName,
         email: data.user?.email || data.userEmail || email,
         token: data.token,
         loginTime: new Date().toISOString()
       };
       localStorage.setItem("userData", JSON.stringify(userData));
-      
-      // Add event to notify other parts of the app about login
-      window.dispatchEvent(new CustomEvent('userLogin', { 
-        detail: userData 
+
+      window.dispatchEvent(new CustomEvent('userLogin', {
+        detail: userData
       }));
-      
-      // Small delay to show success message before redirect
+
       setTimeout(() => {
         navigate("/");
       }, 1000);
@@ -117,18 +114,8 @@ export default function LoginForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-0">
-      <ToastContainer 
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
-      <div className="flex w-full h-auto min-h-screen md:h-screen flex-col md:flex-row overflow-hidden rounded-none bg-white p-4">
+      <ToastContainer />
+      <div className="flex w-full h-auto min-h-screen md:h-screen flex-col md:flex-row overflow-hidden bg-white p-4">
         {/* Left Image Section */}
         <div className="hidden md:block md:w-3/5">
           <img
@@ -141,7 +128,7 @@ export default function LoginForm() {
         {/* Right Form Section */}
         <div className="w-full md:w-2/5 p-4 md:p-14 flex flex-col justify-center">
           <div className="flex justify-center">
-            <div className="h-30 w-30 rounded-md flex items-center justify-center">
+            <div className="h-30 w-30 flex items-center justify-center">
               <img src="/logo png 1.png" alt="Login Icon" className="h-25 w-25" />
             </div>
           </div>
